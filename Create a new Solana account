@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Solana Wallet Integration</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Solana Wallet Integration</h1>
+
+  <button id="createAccountBtn">Create a new Solana account</button>
+  <button id="connectWalletBtn">Connect to Phantom Wallet</button>
+  <button id="transferBtn">Transfer to new wallet</button>
+
+  <div id="result"></div>
+
+  <script src="https://solana.com/solana-web3.js"></script>
+  <script>
+    const createAccountBtn = document.getElementById('createAccountBtn');
+    const connectWalletBtn = document.getElementById('connectWalletBtn');
+    const transferBtn = document.getElementById('transferBtn');
+    const resultDiv = document.getElementById('result');
+
+    // Step 1: Create a new Solana account and airdrop 2 SOL
+    createAccountBtn.addEventListener('click', async () => {
+      try {
+        const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('devnet'));
+
+        const keyPair = solanaWeb3.Keypair.generate();
+        const publicKey = keyPair.publicKey.toString();
+        
+        await connection.requestAirdrop(publicKey, 2 * solanaWeb3.LAMPORTS_PER_SOL);
+        
+        resultDiv.textContent = `New account created with public key: ${publicKey}`;
+      } catch (error) {
+        console.error(error);
+        resultDiv.textContent = 'Error creating account';
+      }
+    });
+
+    // Step 2: Connect to Phantom Wallet
+    connectWalletBtn.addEventListener('click', async () => {
+      try {
+        if (typeof window.solana !== 'undefined') {
+          await window.solana.connect();
+          resultDiv.textContent = 'Connected to Phantom Wallet';
+        } else {
+          window.open('https://phantom.app/', '_blank');
+        }
+      } catch (error) {
+        console.error(error);
+        resultDiv.textContent = 'Error connecting to wallet';
+      }
+    });
+
+    // Step 3: Transfer 2 SOL to connected wallet
+    transferBtn.addEventListener('click', async () => {
+      try {
+        if (typeof window.solana !== 'undefined') {
+          const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('devnet'));
+          const publicKey = window.solana.publicKey.toString();
+
+          const transaction = new solanaWeb3.Transaction().add(
+            solanaWeb3.SystemProgram.transfer({
+              fromPubkey: publicKey,
+              toPubkey: YOUR_TARGET_WALLET_PUBLIC_KEY, // Replace with the target wallet public key
+              lamports: 2 * solanaWeb3.LAMPORTS_PER_SOL
+            })
+          );
+
+          const { blockhash } = await connection.getRecentBlockhash();
+          transaction.recentBlockhash = blockhash;
+
+          const signedTransaction = await window.solana.signTransaction(transaction);
+          const txid = await connection.sendRawTransaction(signedTransaction.serialize());
+          
+          resultDiv.textContent = `Transfer successful. Transaction ID: ${txid}`;
+        } else {
+          resultDiv.textContent = 'Please connect to Phantom Wallet first
